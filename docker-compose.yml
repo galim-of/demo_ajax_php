@@ -1,0 +1,40 @@
+version: "3"
+services:
+  db:
+    image: mysql:8-debian
+    hostname: mysql_db
+    # NOTE: use of "mysql_native_password" is not recommended: https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password
+    # (this is just an example, not intended to be a production configuration)
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=example
+      - LANG=C.UTF-8
+    volumes:
+      - ./docker-compose.d/mysql/config_db.sql:/docker-entrypoint-initdb.d/config_db.sql
+      - ./docker-compose.d/mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
+  
+  nginx: 
+    image: nginx:latest
+    ports:
+    - "8080:80"
+    volumes:
+      - ./app:/app
+      - ./docker-compose.d/nginx/main.conf:/etc/nginx/conf.d/default.conf
+  
+  app:
+    image: php-fpm-custom
+    build:
+      context: ./docker-compose.d/php-fpm-custom
+      dockerfile: ./Dockerfile
+    hostname: php-fpm-node
+    volumes:
+      - ./app:/app
+    ports:
+      - 8000:80
+    environment:
+      - DB_HOST=mysql_db
+      - DB_PORT=3306
+      - DB_NAME=test
+      - DB_USER=root
+      - DB_PASSWORD=example
